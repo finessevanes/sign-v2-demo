@@ -21,6 +21,7 @@ export function ClientContextProvider({ children }) {
   const [client, setClient] = useState();
   const [session, setSession] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [pairings, setPairings] = useState([]);
 
   const onSessionConnected = useCallback(async (_session) => {
     const allNamespaceAccounts = Object.values(_session.namespaces)
@@ -58,6 +59,7 @@ export function ClientContextProvider({ children }) {
 
         const session = await approval();
         await onSessionConnected(session);
+        setPairings(client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error(e);
       } finally {
