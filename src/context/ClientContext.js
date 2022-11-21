@@ -7,7 +7,7 @@ import {
   useContext,
 } from "react";
 import SignClient from "@walletconnect/sign-client";
-import { ConfigCtrl } from "@web3modal/core";
+import { ConfigCtrl, ModalCtrl } from "@web3modal/core";
 import "@web3modal/ui";
 
 export const ClientContext = createContext();
@@ -19,6 +19,44 @@ ConfigCtrl.setConfig({
 
 export function ClientContextProvider({ children }) {
   const [client, setClient] = useState();
+  const [session, setSession] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+
+  const connect = useCallback(
+    async (pairing) => {
+      if (typeof client === "undefined") {
+        throw new Error("WalletConnect is not initialized");
+      }
+
+      try {
+        const requiredNamespaces = {
+          eip155: {
+            methods: [
+              "eth_sendTransaction",
+            ],
+            chains: ["eip155:5"],
+            events: [],
+          },
+        };
+
+        const { uri, approval } = await client.connect({
+          pairingTopic: pairing?.topic,
+          requiredNamespaces,
+        });
+
+        if (uri) {
+          ModalCtrl.open({ uri, standaloneChains: ['eip155:5'] });
+        }
+
+        const session = await approval();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        ModalCtrl.close();
+      }
+    },
+    [client]
+  );
 
   const createClient = useCallback(async () => {
     try {
@@ -45,9 +83,9 @@ export function ClientContextProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      client,
+      client, connect, accounts, session
     }),
-    [client]
+    [ client, connect, accounts, session ]
   );
 
   return (
