@@ -18,6 +18,7 @@ function App() {
     <div className="App">
       <h1>Sign v2</h1>
       <button onClick={onConnect} disabled={!client}>Connect</button>
+      {accounts.length ? <h2>{`${accounts[0]}`}</h2> : ""}
     </div>
   );
 }

@@ -22,6 +22,14 @@ export function ClientContextProvider({ children }) {
   const [session, setSession] = useState([]);
   const [accounts, setAccounts] = useState([]);
 
+  const onSessionConnected = useCallback(async (_session) => {
+    const allNamespaceAccounts = Object.values(_session.namespaces)
+      .map((namespace) => namespace.accounts)
+      .flat();
+    setSession(_session);
+    setAccounts(allNamespaceAccounts);
+  }, []);
+
   const connect = useCallback(
     async (pairing) => {
       if (typeof client === "undefined") {
@@ -49,13 +57,14 @@ export function ClientContextProvider({ children }) {
         }
 
         const session = await approval();
+        await onSessionConnected(session);
       } catch (e) {
         console.error(e);
       } finally {
         ModalCtrl.close();
       }
     },
-    [client]
+    [client, onSessionConnected]
   );
 
   const createClient = useCallback(async () => {
