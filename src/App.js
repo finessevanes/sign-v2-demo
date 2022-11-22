@@ -3,7 +3,7 @@ import "./App.css";
 import { useWalletConnectClient } from "./context/ClientContext";
 
 function App() {
-  const { connect, client, accounts, session } = useWalletConnectClient();
+  const { connect, client, accounts, session, disconnect } = useWalletConnectClient();
   const [txnUrl, setTxnUrl] = useState();
 
   const onConnect = () => {
@@ -14,6 +14,10 @@ function App() {
     } catch (e) {
       console.log(e);
     }
+  };
+
+  const onDisconnect = () => {
+    disconnect();
   };
 
   async function onSend() {
@@ -61,6 +65,7 @@ function App() {
         <>
           <h2>{`${accounts[0]}`}</h2>
           <button onClick={onSend}>send_Transaction</button>
+          <button onClick={onDisconnect}>Disconnect</button>
           {txnUrl && (
             <h2>
               Check it out{" "}

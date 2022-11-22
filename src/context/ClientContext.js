@@ -8,6 +8,7 @@ import {
 } from "react";
 import SignClient from "@walletconnect/sign-client";
 import { ConfigCtrl, ModalCtrl } from "@web3modal/core";
+import { getSdkError } from "@walletconnect/utils";
 import "@web3modal/ui";
 
 export const ClientContext = createContext();
@@ -31,6 +32,11 @@ export function ClientContextProvider({ children }) {
     setAccounts(allNamespaceAccounts);
   }, []);
 
+  const reset = () => {
+    setSession(undefined);
+    setAccounts([]);
+  };
+
   const connect = useCallback(
     async (pairing) => {
       if (typeof client === "undefined") {
@@ -40,9 +46,7 @@ export function ClientContextProvider({ children }) {
       try {
         const requiredNamespaces = {
           eip155: {
-            methods: [
-              "eth_sendTransaction",
-            ],
+            methods: ["eth_sendTransaction"],
             chains: ["eip155:5"],
             events: [],
           },
@@ -54,7 +58,7 @@ export function ClientContextProvider({ children }) {
         });
 
         if (uri) {
-          ModalCtrl.open({ uri, standaloneChains: ['eip155:5'] });
+          ModalCtrl.open({ uri, standaloneChains: ["eip155:5"] });
         }
 
         const session = await approval();
@@ -68,6 +72,20 @@ export function ClientContextProvider({ children }) {
     },
     [client, onSessionConnected]
   );
+
+  const disconnect = useCallback(async () => {
+    if (typeof client === "undefined") {
+      throw new Error("WalletConnect is not initialized");
+    }
+    if (typeof session === "undefined") {
+      throw new Error("Session is not connected");
+    }
+    await client.disconnect({
+      topic: session.topic,
+      reason: getSdkError("USER_DISCONNECTED"),
+    });
+    reset();
+  }, [client, session]);
 
   const createClient = useCallback(async () => {
     try {
@@ -94,9 +112,13 @@ export function ClientContextProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      client, connect, accounts, session
+      client,
+      connect,
+      accounts,
+      session,
+      disconnect
     }),
-    [ client, connect, accounts, session ]
+    [client, connect, accounts, session, disconnect]
   );
 
   return (
