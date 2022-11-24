@@ -87,6 +87,20 @@ export function ClientContextProvider({ children }) {
     reset();
   }, [client, session]);
 
+  const _subscribeToEvents = useCallback(
+    async(_client) => {
+      if (typeof _client === "undefined") {
+        throw new Error("WalletConnect is not initialized");
+      }
+
+      _client.on("session_delete", () => {
+        console.log("EVENT", "session_delete");
+        reset();
+      });
+
+    }, [onSessionConnected]
+  );
+
   const createClient = useCallback(async () => {
     try {
       const _client = await SignClient.init({
@@ -99,10 +113,11 @@ export function ClientContextProvider({ children }) {
         },
       });
       setClient(_client);
+      await _subscribeToEvents(_client);
     } catch (err) {
       throw err;
     }
-  }, []);
+  }, [_subscribeToEvents]);
 
   useEffect(() => {
     if (!client) {
