@@ -8,7 +8,6 @@ import {
 } from "react";
 import SignClient from "@walletconnect/sign-client";
 import { ConfigCtrl, ModalCtrl } from "@web3modal/core";
-import { getSdkError } from "@walletconnect/utils";
 import "@web3modal/ui";
 
 export const ClientContext = createContext();
@@ -20,22 +19,7 @@ ConfigCtrl.setConfig({
 
 export function ClientContextProvider({ children }) {
   const [client, setClient] = useState();
-  const [session, setSession] = useState([]);
-  const [accounts, setAccounts] = useState([]);
   const [pairings, setPairings] = useState([]);
-
-  const onSessionConnected = useCallback(async (_session) => {
-    const allNamespaceAccounts = Object.values(_session.namespaces)
-      .map((namespace) => namespace.accounts)
-      .flat();
-    setSession(_session);
-    setAccounts(allNamespaceAccounts);
-  }, []);
-
-  const reset = () => {
-    setSession(undefined);
-    setAccounts([]);
-  };
 
   const connect = useCallback(
     async (pairing) => {
@@ -62,7 +46,6 @@ export function ClientContextProvider({ children }) {
         }
 
         const session = await approval();
-        await onSessionConnected(session);
         setPairings(client.pairing.getAll({ active: true }));
       } catch (e) {
         console.error(e);
@@ -70,35 +53,7 @@ export function ClientContextProvider({ children }) {
         ModalCtrl.close();
       }
     },
-    [client, onSessionConnected]
-  );
-
-  const disconnect = useCallback(async () => {
-    if (typeof client === "undefined") {
-      throw new Error("WalletConnect is not initialized");
-    }
-    if (typeof session === "undefined") {
-      throw new Error("Session is not connected");
-    }
-    await client.disconnect({
-      topic: session.topic,
-      reason: getSdkError("USER_DISCONNECTED"),
-    });
-    reset();
-  }, [client, session]);
-
-  const _subscribeToEvents = useCallback(
-    async(_client) => {
-      if (typeof _client === "undefined") {
-        throw new Error("WalletConnect is not initialized");
-      }
-
-      _client.on("session_delete", () => {
-        console.log("EVENT", "session_delete");
-        reset();
-      });
-
-    }, [onSessionConnected]
+    [client]
   );
 
   const createClient = useCallback(async () => {
@@ -113,11 +68,10 @@ export function ClientContextProvider({ children }) {
         },
       });
       setClient(_client);
-      await _subscribeToEvents(_client);
     } catch (err) {
       throw err;
     }
-  }, [_subscribeToEvents]);
+  }, []);
 
   useEffect(() => {
     if (!client) {
@@ -129,11 +83,8 @@ export function ClientContextProvider({ children }) {
     () => ({
       client,
       connect,
-      accounts,
-      session,
-      disconnect
     }),
-    [client, connect, accounts, session, disconnect]
+    [client, connect]
   );
 
   return (
